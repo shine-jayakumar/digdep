@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.0.3] - 2026-07-28
+
+### Changed
+- Export __version__ from digdep to allow digdep.__version__
+
+
+## [0.0.2] - 2026-07-28
+
+### Fixed
+- Unterminated string in argparser
+
+
 ## [0.0.1] - Initial Release - 2026-07-28
 
 ### Added

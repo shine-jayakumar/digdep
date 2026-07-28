@@ -7,5 +7,6 @@ See the LICENSE file in the project root for the full license text.
 """
 
 from .analyzer import DepAnalyzer, DepType
+from ._version import __version__
 
 

@@ -46,8 +46,8 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         default="all",
         metavar="TYPES",
         help=(
-            "Comma-separated dependency types (stdlib, third-party, 
-            local, all). Defaults to 'all'."
+            "Comma-separated dependency types (stdlib, third-party, "
+            "local, all). Defaults to 'all'."
         )
     )
 

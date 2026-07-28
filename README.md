@@ -1,6 +1,6 @@
 # DigDep
 
-![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.1&color=blue)
+![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.3&color=blue)
 ![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)
 ![Status](https://img.shields.io/badge/status-alpha-yellow.svg)
 ![Open Source](https://img.shields.io/static/v1?label=OpenSource&message=Yes&color=brightgreen)
