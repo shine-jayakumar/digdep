@@ -1,5 +1,12 @@
 # DigDep
 
+![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.1&color=blue)
+![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)
+![Status](https://img.shields.io/badge/status-alpha-yellow.svg)
+![Open Source](https://img.shields.io/static/v1?label=OpenSource&message=Yes&color=brightgreen)
+![GitHub issues](https://img.shields.io/github/issues/shine-jayakumar/docdsl)
+![Last Commit](https://img.shields.io/github/last-commit/shine-jayakumar/docdsl)
+
 A lightweight Python dependency analyzer that scans Python projects and visualizes import relationships.
 
 ---
