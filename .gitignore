@@ -1,0 +1,16 @@
+venv/
+test_venv/
+pkgtest_venv/
+testing/
+__pycache__/
+**/__pycache__/
+
+*.py[cod]
+*$py.class
+
+build/
+dist/
+*.egg-info/
+*.toml
+
+.pytest_cache/

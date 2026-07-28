@@ -1,0 +1,195 @@
+# DigDep
+
+A lightweight Python dependency analyzer that scans Python projects and visualizes import relationships.
+
+---
+
+## Installation
+
+```bash
+pip install digdep
+```
+---
+
+## Quick Start (CLI)
+
+List all imported packages:
+
+```bash
+digdep packages ./myproject
+```
+
+Show the File → Dependency tree:
+
+```bash
+digdep file-tree ./myproject
+```
+
+Show the Dependency → File tree:
+
+```bash
+digdep dep-tree ./myproject
+```
+
+---
+
+## Sample Output
+
+### File → Dependency Tree
+
+```text
+Root (/projects/example)
+
+├── main.py              → requests, pathlib
+├── config.py            → json
+│
+├── modules/
+│   ├── logger.py        → logging
+│   ├── parser.py        → re, typing
+│
+└── utils/
+    └── helpers.py       → functools
+```
+
+### Dependency → File Tree
+
+```text
+requests
+├── main.py
+
+re
+├── modules/
+│   └── parser.py
+
+logging
+├── modules/
+│   └── logger.py
+```
+
+---
+
+## Filtering
+
+Filter dependencies by type.
+
+Show only standard library imports:
+
+```bash
+digdep file-tree ./myproject --type stdlib
+```
+
+Show both standard library and third-party imports:
+
+```bash
+digdep file-tree ./myproject --type stdlib,third-party
+```
+
+Show only local imports:
+
+```bash
+digdep file-tree ./myproject --type local
+```
+
+---
+
+## Ignoring Files and Directories
+
+Skip directories or files while scanning:
+
+```bash
+digdep file-tree ./myproject --ignore venv __pycache__ tests
+```
+
+---
+
+## Redirecting Output
+
+Save the generated tree to a file:
+
+```bash
+digdep dep-tree ./myproject > dependencies.txt
+```
+
+---
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `packages` | List all imported packages |
+| `file-tree` | Show the File → Dependency tree |
+| `dep-tree` | Show the Dependency → File tree |
+
+Run `digdep <command> --help` for command-specific options.
+
+---
+
+## Using as a Python Library
+
+```python
+from digdep import DepAnalyzer, DepType
+
+analyzer = DepAnalyzer()
+
+# Ignoring directories
+analyzer.ignore([
+    "__pycache__",
+    "venv",
+    "build",
+    "tests"
+])
+
+analyzer.scan("./myproject")
+
+# List imported packages
+packages = analyzer.get_packages()
+
+# Get the File -> Dependency tree
+filedep_tree = analyzer.get_filedep_tree()
+
+# Get the Dependency -> File tree
+depfile_tree = analyzer.get_depfile_tree()
+
+```
+
+Filter dependencies by type:
+
+```python
+from digdep import DepAnalyzer, DepType
+
+analyzer = DepAnalyzer()
+analyzer.scan("./myproject")
+
+# Show only standard library imports
+filedep_tree = analyzer.get_filedep_tree(
+    filters=DepType.STDLIB
+)
+
+# Show standard library and third-party imports
+depfile_tree = analyzer.get_depfile_tree(
+    filters=DepType.STDLIB | DepType.THIRD_PARTY
+)
+```
+
+---
+## Roadmap
+
+- Local module detection
+- Dependency statistics
+- JSON export
+- Circular dependency detection
+- Unused dependency detection
+
+---
+
+## Requirements
+
+- Python 3.11+
+
+---
+
+## License
+
+Released under the MIT License.
+
+---
