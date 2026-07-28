@@ -45,6 +45,25 @@ class DepAnalyzer:
         """Adds files/directories to ignorelist"""
         self._ignorelist = set(ignorelist)
 
+    def ignore_from_file(self, fpath: str) -> None:
+        """Read directories to ignore from a file"""
+        try:
+            with open(fpath, "r") as fh:
+                dirnames = [line.strip() for line in fh if line.strip()]
+                self._ignorelist.update(dirnames)
+        except Exception as ex:
+            print(
+                (
+                    f"Error: Failed to read: {fpath}\n"
+                    f"{ex.__class__.__name__} - {str(ex)}"
+                )
+            )
+
+    @property
+    def ignorelist(self) -> tuple[str]:
+        """Get ignored directories"""
+        return tuple(self._ignorelist)
+
     def _get_file_deps(self, fpath: str) -> list[str]:
         """Get dependencies in a file"""
         try:

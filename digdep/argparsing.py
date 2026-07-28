@@ -41,6 +41,12 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Directories or files to ignore.",
     )
     parser.add_argument(
+        "-I",
+        "--ignore-file",
+        metavar="FILE",
+        help="Read directories to ignore from a file.",
+    )
+    parser.add_argument(
         "--type",
         "-t",
         default="all",

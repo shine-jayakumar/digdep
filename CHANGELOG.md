@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.0.4] - 2026-07-28
+
+### Added
+
+- Add support for loading ignored directories from a text file using 
+- the `--ignore-file` (`-I`) CLI option.
+- Add `DepAnalyzer.ignore_from_file()` to populate the ignore list from a file.
+- Add `DepAnalyzer.ignorelist` property to expose the current ignore list.
+
+### Fixed
+
+- Fix dependency type filtering in the CLI so the selected dependency types are applied correctly.
+
+### Changed
+
+- Bump package version to **0.0.4**.
+
+
 ## [0.0.3] - 2026-07-28
 
 ### Changed

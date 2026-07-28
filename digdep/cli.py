@@ -27,6 +27,8 @@ def main(is_ascii: bool = False):
 
     depanalyzer = DepAnalyzer(is_ascii=is_ascii)
     depanalyzer.ignore(args.ignore)
+    if args.ignore_file:
+        depanalyzer.ignore_from_file(args.ignore_file)
     depanalyzer.scan(args.path)
 
     arg_deptypes = args.type.split(",")
@@ -37,7 +39,7 @@ def main(is_ascii: bool = False):
         sys.exit(1)
 
     filters = DepType.NONE
-    for deptype in invalid_types:
+    for deptype in arg_deptypes:
         filters |= ARG_DEPTYPE_MAP.get(deptype.strip(), DepType.NONE)
     filters = DepType.ALL if filters == DepType.NONE else filters
 

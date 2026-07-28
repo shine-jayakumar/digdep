@@ -1,6 +1,6 @@
 # DigDep
 
-![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.3&color=blue)
+![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.4&color=blue)
 ![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)
 ![Status](https://img.shields.io/badge/status-alpha-yellow.svg)
 ![Open Source](https://img.shields.io/static/v1?label=OpenSource&message=Yes&color=brightgreen)
@@ -99,13 +99,35 @@ digdep file-tree ./myproject --type local
 
 ---
 
-## Ignoring Files and Directories
+## Ignoring Directories
 
-Skip directories or files while scanning:
+### Ignore from command line
 
 ```bash
 digdep file-tree ./myproject --ignore venv __pycache__ tests
 ```
+
+### Ignore from a file
+
+Create a text file (for example, `ignore.txt`):
+
+```text
+venv
+.git
+build
+__pycache__
+tests
+```
+
+Then run:
+
+```bash
+digdep . --ignore-file ignore.txt
+```
+
+Each non-empty line in the file is treated as a directory to ignore.
+
+The `--ignore` and `--ignore-file` options can be used together.
 
 ---
 
