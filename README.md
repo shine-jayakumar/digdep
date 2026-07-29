@@ -1,6 +1,6 @@
 # DigDep
 
-![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.5&color=blue)
+![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.6&color=blue)
 ![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)
 ![Status](https://img.shields.io/badge/status-alpha-yellow.svg)
 ![Open Source](https://img.shields.io/static/v1?label=OpenSource&message=Yes&color=brightgreen)
@@ -20,10 +20,10 @@ pip install digdep
 
 ## Quick Start (CLI)
 
-List all imported packages:
+List all imported dependencies:
 
 ```bash
-digdep packages ./myproject
+digdep deps ./myproject
 ```
 
 Show the File → Dependency tree:
@@ -184,7 +184,7 @@ digdep dep-tree ./myproject > dependencies.txt
 
 | Command | Description |
 |---------|-------------|
-| `packages` | List all imported packages |
+| `deps` | List all imported dependencies |
 | `file-tree` | Show the File → Dependency tree |
 | `dep-tree` | Show the Dependency → File tree |
 
@@ -209,8 +209,8 @@ analyzer.ignore([
 
 analyzer.scan("./myproject")
 
-# List imported packages
-packages = analyzer.get_packages()
+# List imported dependencies
+deps = analyzer.get_deps()
 
 # Get the File -> Dependency tree
 filedep_tree = analyzer.get_filedep_tree()
@@ -218,6 +218,11 @@ filedep_tree = analyzer.get_filedep_tree()
 # Get the Dependency -> File tree
 depfile_tree = analyzer.get_depfile_tree()
 
+# Write File -> Dependency to json file
+analyzer.file_tree_json("file_tree.json")
+
+# Get File -> Dependency as json
+filetree_json = analyzer.file_tree_json()
 ```
 
 Filter dependencies by type:
@@ -236,6 +241,12 @@ filedep_tree = analyzer.get_filedep_tree(
 # Show standard library and third-party imports
 depfile_tree = analyzer.get_depfile_tree(
     filters=DepType.STDLIB | DepType.THIRD_PARTY
+)
+
+# Write File -> Dependency to json file
+analyzer.file_tree_json(
+    fpath="file_tree.json",
+    filters=DepType.STDLIB | DepType.LOCAL
 )
 ```
 

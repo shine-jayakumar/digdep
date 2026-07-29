@@ -37,6 +37,7 @@ class DepAnalyzer:
         self._dep_type_map: dict[str, DepType] = {}
         self._ignorelist: set[str] = set()
         self._path_dep_map: dict[Path, set[str]] = {}
+        self._local_deps: set[str] = set()
         self._is_ascii: bool = is_ascii
         self._tree_prefix_char = (
             "├──" if not self._is_ascii else "|__"
@@ -66,7 +67,7 @@ class DepAnalyzer:
         """Get ignored directories"""
         return tuple(self._ignorelist)
 
-    def _get_file_deps(self, fpath: str) -> list[str]:
+    def _get_file_deps(self, fpath: str) -> list[tuple[str, int]]:
         """Get dependencies in a file"""
         try:
             with open(fpath, "r", encoding="utf-8") as fh:
@@ -88,6 +89,8 @@ class DepAnalyzer:
         """Get the dependency type"""
         if dep in sys.stdlib_module_names:
             return DepType.STDLIB
+        if dep in self._local_deps:
+            return DepType.LOCAL
         return DepType.THIRD_PARTY
 
     def _update_deptype_map(self, deps: set[str]) -> None:
@@ -103,6 +106,7 @@ class DepAnalyzer:
         self._depfile_tree = {}
         self._dep_type_map = {}
         self._path_dep_map = {}
+        self._local_deps = set()
 
     def scan(self, root: str = ".") -> None:
         """Scans a python file(s) in a directory/sub-directory"""
@@ -110,7 +114,9 @@ class DepAnalyzer:
         self._root = Path(root)
         for path in walkpath(root, self._ignorelist):
             deps = self._get_file_deps(str(path.resolve()))
-            deps = set(deps) if deps else set()
+            if deps:
+                self._local_deps.update(dep for dep, level in deps if level > 0)
+            deps = set(dep for dep,_ in deps)
             relpath =  path.relative_to(self._root)
             self._path_dep_map[relpath] = deps
             self._update_deptype_map(deps)
@@ -119,11 +125,14 @@ class DepAnalyzer:
         deps = self._get_filtered_deps(filters) 
         return tuple(deps)
 
-    def deps_json(self, fpath: str, filters: DepType = DepType.ALL) -> None:
+    def deps_json(self, fpath: str, filters: DepType = DepType.ALL) -> str | None:
         """Dump dependencies to json"""
         deps = self._get_filtered_deps(filters)
         json_deps = {"dependencies": list(deps)}
-        json.dump(json_deps, open(fpath, "w"), indent=4)
+        if fpath:
+            json.dump(json_deps, open(fpath, "w"), indent=4)
+            return None
+        return json.dumps(json_deps, indent=4)
 
     def show_deps(self, filters: DepType = DepType.ALL) -> None:
         print("\n".join(dep for dep in self.get_deps(filters)))
@@ -182,7 +191,7 @@ class DepAnalyzer:
 
     def file_tree_json(
         self, fpath: str, filters: DepType = DepType.ALL
-    ) -> None:
+    ) -> str | None:
         """Dump File-Dependency tree to json"""
         self._gen_filedeps_tree()
         relevant_deps = (
@@ -203,7 +212,10 @@ class DepAnalyzer:
                 copytree(val, dst_branch[_dir])
 
         copytree(self._filedep_tree, json_tree)
-        json.dump(json_tree, open(fpath, "w"), indent=4)
+        if fpath:
+            json.dump(json_tree, open(fpath, "w"), indent=4)
+            return
+        return json.dumps(json_tree, ident=4)
 
     def show_file_tree(self, filters: DepType = DepType.ALL) -> None:
         """Show file and dependencies"""
@@ -239,7 +251,7 @@ class DepAnalyzer:
 
     def dep_tree_json(
         self, fpath: str, filters: DepType = DepType.ALL
-    ) -> None:
+    ) -> str | None:
         """Dump Dependency-File tree to json"""
         self._gen_depfiles_tree()
         relevant_deps = (
@@ -252,7 +264,10 @@ class DepAnalyzer:
             dep: self._depfile_tree.get(dep)
             for dep in filtered_deps
         }
-        json.dump(json_tree, open(fpath, "w"), indent=4)
+        if fpath:
+            json.dump(json_tree, open(fpath, "w"), indent=4)
+            return
+        return json.dumps(json_tree, indent=4)
 
     def show_dep_tree(self, filters: DepType = DepType.ALL) -> None:
         """Show dependency and files"""

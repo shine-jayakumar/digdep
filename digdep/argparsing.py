@@ -18,6 +18,7 @@ Examples:
   digdep deps ./myproject
   digdep file-tree ./myproject
   digdep dep-tree ./myproject
+  digdep file-tree ./myproject -o file_tree.json
 
 Ignore directories:
   digdep file-tree ./myproject --ignore venv __pycache__ tests
@@ -83,11 +84,11 @@ subparsers = parser.add_subparsers(
     dest="command",
     required=True,
 )
-packages = subparsers.add_parser(
+deps = subparsers.add_parser(
     "deps",
     help = "List dependencies."
 )
-add_common_args(packages)
+add_common_args(deps)
 
 file_tree = subparsers.add_parser(
     "file-tree",

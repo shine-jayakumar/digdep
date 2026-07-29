@@ -14,20 +14,32 @@ import ast
 class DependencyVisitor(ast.NodeVisitor):
 
     def __init__(self):
-        self._deps = []
+        self._deps: list[tuple[str, int]] = []
 
     @property
     def deps(self):
         return self._deps
 
+    def _get_toplevel_module(self, name: str) -> str:
+        """Get the top level module"""
+        return name.split(".", 1)[0] if name else ""
+
     def visit_Import(self, node):
         self._deps.extend([
-            alias.name.split(".", 1)[0] for alias in node.names
+            (self._get_toplevel_module(alias.name), 0)
+            for alias in node.names
         ])
         
     def visit_ImportFrom(self, node):
-        if node.level == 0:
-            self._deps.append(node.module.split(".")[0])
+        level = node.level
+        if node.module:
+            module = self._get_toplevel_module(node.module)
+            self._deps.append((module, level))
+        else:
+            for alias in node.names:
+                module = self._get_toplevel_module(alias.name)
+                self._deps.append((module, level))
+
 
 
 if __name__ == "__main__":

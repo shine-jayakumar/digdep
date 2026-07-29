@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 
 ---
+
+## [0.0.6] - 2026-07-29
+
+### Added
+- Detect and classify local dependencies imported using relative imports.
+- Add support for returning JSON output as a string when no output file is specified.
+
+### Changed
+- Update dependency scanning to preserve import level information.
+- Improve dependency classification by distinguishing standard library, third-party, and local modules.
+- Enhance the dependency visitor to capture import levels for both `import` and `from ... import` statements.
+- Add examples to the README demonstrating JSON export and filtered JSON output.
+
+### Fixed
+- Correctly identify local dependencies imported via relative imports.
+- Handle module-less relative import statements (for example, `from . import module`) during dependency analysis.
+
+### Documentation
+- Update the README with JSON export examples.
+- Rename the `packages` command to `deps`.
+- Update the version badge to **0.0.6**.
+
+
 ## [0.0.5] - 2026-07-29
 
 ### Added
