@@ -1,6 +1,6 @@
 # DigDep
 
-![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.4&color=blue)
+![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.5&color=blue)
 ![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)
 ![Status](https://img.shields.io/badge/status-alpha-yellow.svg)
 ![Open Source](https://img.shields.io/static/v1?label=OpenSource&message=Yes&color=brightgreen)
@@ -130,6 +130,45 @@ Each non-empty line in the file is treated as a directory to ignore.
 The `--ignore` and `--ignore-file` options can be used together.
 
 ---
+
+## Write Output to a File
+
+Use the `-o` (`--output`) option to write command output to a file. Currently, DigDep supports JSON output.
+
+### Export the dependency list
+
+```bash
+digdep deps . -o deps.json
+```
+
+Output:
+
+```json
+{
+    "dependencies": [
+        "argparse",
+        "ast",
+        "json",
+        "pathlib",
+        "rich"
+    ]
+}
+```
+
+### Export the file-dependency tree
+
+```bash
+digdep file-tree . -o file-tree.json
+```
+
+### Export the dependency-file tree
+
+```bash
+digdep dep-tree . -o dep-tree.json
+```
+
+The output format is determined by the file extension. Currently, only `.json` is supported.
+
 
 ## Redirecting Output
 

@@ -15,7 +15,7 @@ from ._version import __version__
 DESCRIPTION = "Scan Python projects and inspect import dependencies."
 EXAMPLES = """
 Examples:
-  digdep packages ./myproject
+  digdep deps ./myproject
   digdep file-tree ./myproject
   digdep dep-tree ./myproject
 
@@ -47,14 +47,20 @@ def add_common_args(parser: argparse.ArgumentParser) -> None:
         help="Read directories to ignore from a file.",
     )
     parser.add_argument(
-        "--type",
         "-t",
+        "--type",
         default="all",
         metavar="TYPES",
         help=(
             "Comma-separated dependency types (stdlib, third-party, "
             "local, all). Defaults to 'all'."
         )
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        metavar="FILE",
+        help="Write output to a file."
     )
 
 
@@ -78,8 +84,8 @@ subparsers = parser.add_subparsers(
     required=True,
 )
 packages = subparsers.add_parser(
-    "packages",
-    help = "List imported packages."
+    "deps",
+    help = "List dependencies."
 )
 add_common_args(packages)
 

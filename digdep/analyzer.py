@@ -13,8 +13,10 @@ from pathlib import Path
 from rich.console import Console
 from enum import Flag, auto
 import sys
+import json
 from .visitors import DependencyVisitor
 from .utils import walkpath
+from .exceptions import *
 
 
 class DepType(Flag):
@@ -72,7 +74,7 @@ class DepAnalyzer:
                 tree = ast.parse(source)
                 visitor = DependencyVisitor()
                 visitor.visit(tree)
-                return visitor.packages
+                return visitor.deps
         except Exception as ex:
             print(
                 (
@@ -113,12 +115,18 @@ class DepAnalyzer:
             self._path_dep_map[relpath] = deps
             self._update_deptype_map(deps)
 
-    def get_packages(self, filters: DepType = DepType.ALL) -> tuple[str]:
+    def get_deps(self, filters: DepType = DepType.ALL) -> tuple[str]:
         deps = self._get_filtered_deps(filters) 
         return tuple(deps)
 
-    def show_packages(self, filters: DepType = DepType.ALL) -> None:
-        print("\n".join(dep for dep in self.get_packages(filters)))
+    def deps_json(self, fpath: str, filters: DepType = DepType.ALL) -> None:
+        """Dump dependencies to json"""
+        deps = self._get_filtered_deps(filters)
+        json_deps = {"dependencies": list(deps)}
+        json.dump(json_deps, open(fpath, "w"), indent=4)
+
+    def show_deps(self, filters: DepType = DepType.ALL) -> None:
+        print("\n".join(dep for dep in self.get_deps(filters)))
 
     def _tree_prefix(self, indent: int = 0) -> str:
         """Generates tree prefix with indentation"""
@@ -167,12 +175,37 @@ class DepAnalyzer:
             if filters & deptype
         }
 
-    def get_filedep_tree(self, filters: DepType = DepType.ALL) -> dict:
+    def get_file_tree(self, filters: DepType = DepType.ALL) -> dict:
         """Get the file-dependency tree"""
         self._gen_filedeps_tree()
         return self._filedep_tree
 
-    def file_dependency_tree(self, filters: DepType = DepType.ALL) -> None:
+    def file_tree_json(
+        self, fpath: str, filters: DepType = DepType.ALL
+    ) -> None:
+        """Dump File-Dependency tree to json"""
+        self._gen_filedeps_tree()
+        relevant_deps = (
+            self._get_filtered_deps(filters) if filters else set()
+        )
+        json_tree = {}
+
+        def copytree(src_branch: dict, dst_branch: dict):
+            files = src_branch.get("files", [])
+            dst_branch["files"] = {}
+            for file, deps in files:
+                deps = deps.intersection(relevant_deps)
+                dst_branch["files"][file] = sorted(deps)
+
+            dirs = {k:v for k,v in src_branch.items() if isinstance(v, dict)}
+            for _dir, val in dirs.items():
+                dst_branch[_dir] = {}
+                copytree(val, dst_branch[_dir])
+
+        copytree(self._filedep_tree, json_tree)
+        json.dump(json_tree, open(fpath, "w"), indent=4)
+
+    def show_file_tree(self, filters: DepType = DepType.ALL) -> None:
         """Show file and dependencies"""
         self._gen_filedeps_tree()
         relevant_deps = (
@@ -199,12 +232,29 @@ class DepAnalyzer:
         self._print(f"[bold magenta]Root ({self._root})[/bold magenta]")
         showdep(self._filedep_tree)
 
-    def get_depfile_tree(self, filters: DepType = DepType.ALL) -> dict:
+    def get_dep_tree(self, filters: DepType = DepType.ALL) -> dict:
         """Get the dependency-file tree"""
         self._gen_depfiles_tree()
         return self._depfile_tree
 
-    def dependency_file_tree(self, filters: DepType = DepType.ALL) -> None:
+    def dep_tree_json(
+        self, fpath: str, filters: DepType = DepType.ALL
+    ) -> None:
+        """Dump Dependency-File tree to json"""
+        self._gen_depfiles_tree()
+        relevant_deps = (
+            self._get_filtered_deps(filters) if filters else set()
+        )
+        filtered_deps = (
+            set(self._depfile_tree.keys()).intersection(relevant_deps)
+        )
+        json_tree = {
+            dep: self._depfile_tree.get(dep)
+            for dep in filtered_deps
+        }
+        json.dump(json_tree, open(fpath, "w"), indent=4)
+
+    def show_dep_tree(self, filters: DepType = DepType.ALL) -> None:
         """Show dependency and files"""
         self._gen_depfiles_tree()
         relevant_deps = (

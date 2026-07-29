@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 
 ---
+## [0.0.5] - 2026-07-29
+
+### Added
+- Support exporting dependency lists as JSON.
+- Support exporting file-dependency trees as JSON.
+- Support exporting dependency-file trees as JSON.
+- Add `-o` / `--output` CLI option to write command output to a file.
+
+### Changed
+- Rename the `packages` command to `deps`.
+- Rename package-related APIs to use **dependency** instead of package. 
+- Refactor CLI command handling to use a generic command dispatcher.
+- Refactor dependency type parsing into a dedicated helper function.
+
+### Fixed
+- Improve CLI error handling by replacing abrupt exits with custom exceptions.
+- Add centralized exception handling for command execution.
+
+### Removed
+- Remove the obsolete `analyzer_bak.py` backup file.
+
 
 ## [0.0.4] - 2026-07-28
 
