@@ -17,6 +17,9 @@ import json
 from .visitors import DependencyVisitor
 from .utils import walkpath
 from .exceptions import *
+import re
+from time import time as tm
+from datetime import datetime
 
 
 class DepType(Flag):
@@ -34,9 +37,11 @@ class DepAnalyzer:
         self._root: Path = None
         self._filedep_tree = {}
         self._depfile_tree = {}
+        self._unused_import_tree = {}
         self._dep_type_map: dict[str, DepType] = {}
         self._ignorelist: set[str] = set()
         self._path_dep_map: dict[Path, set[str]] = {}
+        self._path_unused_import_map: dict[Path, set[str]] = {}
         self._local_deps: set[str] = set()
         self._is_ascii: bool = is_ascii
         self._tree_prefix_char = (
@@ -85,6 +90,15 @@ class DepAnalyzer:
             )
         return []
 
+    def _get_visitor(self, fpath: str) -> DependencyVisitor:
+        """DependencyVisitor for source code in fpath"""
+        with open(fpath, "r", encoding="utf-8") as fh:
+            source = fh.read()
+            tree = ast.parse(source)
+            visitor = DependencyVisitor()
+            visitor.visit(tree)
+            return visitor
+        
     def _get_deptype(self, dep: str) -> DepType:
         """Get the dependency type"""
         if dep in sys.stdlib_module_names:
@@ -113,13 +127,16 @@ class DepAnalyzer:
         self._reset_vars()
         self._root = Path(root)
         for path in walkpath(root, self._ignorelist):
-            deps = self._get_file_deps(str(path.resolve()))
+            visitor = self._get_visitor(str(path.resolve()))
+            deps = visitor.deps
+            #deps = self._get_file_deps(str(path.resolve()))
             if deps:
-                self._local_deps.update(dep for dep, level in deps if level > 0)
-            deps = set(dep for dep,_ in deps)
+                self._local_deps.update(dep.module for dep in deps if dep.level > 0)
+            deps = set(dep.module for dep in deps)
             relpath =  path.relative_to(self._root)
             self._path_dep_map[relpath] = deps
             self._update_deptype_map(deps)
+            self._path_unused_import_map[relpath] = visitor.unused_imports
 
     def get_deps(self, filters: DepType = DepType.ALL) -> tuple[str]:
         deps = self._get_filtered_deps(filters) 
@@ -175,6 +192,18 @@ class DepAnalyzer:
                 for part in dirparts:
                     branch = branch.setdefault(part, {"files": []})
                 branch["files"].append(path.name)
+
+    def _gen_unused_import_tree(self) -> None:
+        """Generate unused import tree"""
+        if self._unused_import_tree:
+            return self._unused_import_tree
+        self._unused_import_tree = {"files": []}
+        for path, unused_imports in self._path_unused_import_map.items():
+            dirparts = path.parent.parts
+            branch = self._unused_import_tree
+            for part in dirparts:
+                branch = branch.setdefault(part, {"files": []})
+            branch["files"].append((path.name, unused_imports))
 
     def _get_filtered_deps(self, filters: DepType) -> set[str]:
         """Filter dependencies by type"""
@@ -295,6 +324,41 @@ class DepAnalyzer:
             self._print(f"[bold cyan]{dep}[/bold cyan]")
             showfiles(deptree)
             print("\n")
+
+    def get_unused_imports_tree(
+        self, filters: DepType = DepType.ALL
+    ) -> dict:
+        """Get the file-unused imports tree"""
+        self._gen_unused_import_tree()
+        return self._unused_import_tree
+
+    def show_unused_imports(self, filters: DepType = DepType.ALL) -> None:
+        """Show file and unused imports"""
+        self._gen_unused_import_tree()
+        relevant_deps = (
+            self._get_filtered_deps(filters) if filters else set()
+        )
+        def showdep(branch: dict, indent=0):
+            files = branch.get("files", [])
+            tree_prefix = self._tree_prefix(indent)
+            maxwidth = (
+                max(len(file) for file, _ in files) if files else 0
+            )
+            for file, deps in files:
+                deps = deps.intersection(relevant_deps)
+                deps = ", ".join(sorted(deps))
+                deps = f" → [bold cyan]{deps}[/bold cyan]" if deps else ""
+                self._print(f"{tree_prefix} {file:<{maxwidth}}{deps}")
+
+            dirs = {k:v for k,v in branch.items() if isinstance(v, dict)}
+            for _dir, val in dirs.items():
+                print(self._vertical_spacer(indent))
+                self._print(f"{tree_prefix} [blue]{_dir}[/blue]/")
+                showdep(val, indent + 4)
+
+        self._print(f"[bold magenta]Root ({self._root})[/bold magenta]")
+        showdep(self._unused_import_tree)
+
 
 
 if __name__ == "__main__":

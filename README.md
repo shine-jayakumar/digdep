@@ -1,6 +1,6 @@
 # DigDep
 
-![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.6&color=blue)
+![Version](https://img.shields.io/static/v1?label=version&message=v.0.0.7&color=blue)
 [![PyPI version](https://img.shields.io/pypi/v/digdep.svg)](https://pypi.org/project/digdep/)
 [![Python versions](https://img.shields.io/pypi/pyversions/digdep.svg)](https://pypi.org/project/digdep/)
 ![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)
@@ -38,6 +38,11 @@ Show the Dependency → File tree:
 
 ```bash
 digdep dep-tree ./myproject
+```
+Show the File → Unused Imports tree:
+
+```bash
+digdep unused-imports ./myproject
 ```
 
 ---
@@ -219,6 +224,9 @@ filedep_tree = analyzer.get_filedep_tree()
 
 # Get the Dependency -> File tree
 depfile_tree = analyzer.get_depfile_tree()
+
+# Get the File -> Unused Import tree
+unusedimports_tree = analyzer.get_unused_imports_tree()
 
 # Write File -> Dependency to json file
 analyzer.file_tree_json("file_tree.json")

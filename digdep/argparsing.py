@@ -18,6 +18,7 @@ Examples:
   digdep deps ./myproject
   digdep file-tree ./myproject
   digdep dep-tree ./myproject
+  digdep unused-imports ./myproject
   digdep file-tree ./myproject -o file_tree.json
 
 Ignore directories:
@@ -101,6 +102,15 @@ dep_tree = subparsers.add_parser(
     help="Show the dependency -> file tree."
 )
 add_common_args(dep_tree)
+
+unused_import_tree = subparsers.add_parser(
+    "unused-imports",
+    help="Show the file -> unused imports tree."
+)
+add_common_args(unused_import_tree)
+
+
+
 
 
 def parse_args() -> argparse.Namespace:

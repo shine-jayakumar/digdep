@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.0.7] - 2026-08-01
+
+### Added
+- Add support for detecting unused imports.
+- Add the `unused-imports` CLI command to display unused imports by file.
+
+### Changed
+- Enhance AST analysis to track imported symbols and their usage.
+- Improve dependency analysis by recording import metadata and usage information.
+
+### Documentation
+- Document the `unused-imports` command in the README.
+
+
 ## [0.0.6] - 2026-07-29
 
 ### Added
