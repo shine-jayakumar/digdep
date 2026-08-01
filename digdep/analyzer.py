@@ -17,9 +17,6 @@ import json
 from .visitors import DependencyVisitor
 from .utils import walkpath
 from .exceptions import *
-import re
-from time import time as tm
-from datetime import datetime
 
 
 class DepType(Flag):
