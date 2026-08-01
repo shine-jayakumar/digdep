@@ -62,7 +62,7 @@ digdep unused-imports ./myproject
 
 For the complete CLI reference, see:
 
-**📖 [CLI Documentation](https://github.com/shine-jayakumar/digdep/blob/master/docs/cli.md)**
+**📖 [CLI Documentation](https://github.com/shine-jayakumar/digdep/blob/master/docs/CLI.md)**
 
 ---
 
@@ -79,7 +79,7 @@ analyzer.show_deps()
 
 For the complete Python API guide, see:
 
-**📖 [Python Library Documentation](https://github.com/shine-jayakumar/digdep/blob/master/docs/python-api.md)**
+**📖 [Python Library Documentation](https://github.com/shine-jayakumar/digdep/blob/master/docs/API.md)**
 
 ---
 
