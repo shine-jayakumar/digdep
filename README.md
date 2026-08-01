@@ -116,9 +116,7 @@ Root (/projects/example)
 ## Roadmap
 
 - Circular dependency detection
-- Unused dependency detection
 - Multiple output formats
-- HTML documentation (Sphinx)
 - Performance improvements
 
 ---
