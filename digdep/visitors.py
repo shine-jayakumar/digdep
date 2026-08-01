@@ -42,6 +42,7 @@ class DependencyVisitor(ast.NodeVisitor):
         self._deps: list[Dependency] = []
         self._import_name_map: dict[ImportName, list[ImportItem]] = {}
         self._used_importnames: set[ImportName] = set()
+        self._import_statements: int = 0
 
     @property
     def deps(self):
@@ -60,6 +61,10 @@ class DependencyVisitor(ast.NodeVisitor):
         imported_names = set(self._import_name_map.keys())
         unused_names = imported_names.difference(self._used_importnames)
         return unused_names
+
+    @property
+    def import_statements(self):
+        return self._import_statements
 
     def _get_toplevel_module(self, name: str) -> str:
         """Get the top level module"""
@@ -105,6 +110,7 @@ class DependencyVisitor(ast.NodeVisitor):
         return ""
 
     def visit_Import(self, node):
+        self._import_statements += 1
         self._update_imported_names(node)
         self._deps.extend([
             Dependency(
@@ -117,6 +123,7 @@ class DependencyVisitor(ast.NodeVisitor):
         ])
         
     def visit_ImportFrom(self, node):
+        self._import_statements += 1
         level = node.level
         self._update_imported_names(node)
         if node.module:

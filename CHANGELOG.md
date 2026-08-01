@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.0.8] - 2026-08-01
+
+### Added
+- Add dependency statistics with file, import, and dependency metrics.
+- Add the `stats` CLI command.
+- Add the `Stats` API for programmatic access to analysis metrics.
+- Add dedicated CLI and Python API documentation.
+- Add tests for dependency statistics and analyzer functionality.
+
+### Changed
+- Rename `scan()` to `analyze()` in the Python API.
+- Improve dependency analysis to collect project statistics.
+- Update the README with a simplified quick start and links to dedicated documentation.
+
+### Documentation
+- Add comprehensive CLI documentation.
+- Add comprehensive Python API documentation.
+
+
 ## [0.0.7] - 2026-08-01
 
 ### Added

@@ -68,7 +68,7 @@ def main(is_ascii: bool = False):
     depanalyzer.ignore(args.ignore)
     if args.ignore_file:
         depanalyzer.ignore_from_file(args.ignore_file)
-    depanalyzer.scan(args.path)
+    depanalyzer.analyze(args.path)
 
     try:
         process_command(args, depanalyzer)

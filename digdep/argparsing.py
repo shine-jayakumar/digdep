@@ -109,8 +109,11 @@ unused_import_tree = subparsers.add_parser(
 )
 add_common_args(unused_import_tree)
 
-
-
+stats = subparsers.add_parser(
+    "stats",
+    help="Show dependency statistics."
+)
+add_common_args(stats)
 
 
 def parse_args() -> argparse.Namespace:

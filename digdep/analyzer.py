@@ -14,7 +14,9 @@ from rich.console import Console
 from enum import Flag, auto
 import sys
 import json
-from .visitors import DependencyVisitor
+from dataclasses import dataclass, field
+from collections import Counter
+from .visitors import DependencyVisitor, Dependency
 from .utils import walkpath
 from .exceptions import *
 
@@ -28,6 +30,30 @@ class DepType(Flag):
     ALL = STDLIB | THIRD_PARTY | LOCAL
 
 
+@dataclass
+class Stats:
+    files: int = 0
+    imported_items: int = 0
+    import_statements: int = 0
+    unique_deps: int = 0
+    used_imports: int = 0
+    unused_imports: int = 0
+    stdlib: int = 0
+    third_party: int = 0
+    local: int = 0
+    _dep_count_map: dict[str, int] = field(default_factory=dict)
+
+    def update_dep_count(self, dep_count: dict[str, int]):
+        self._dep_count_map.update(dep_count)
+
+    def get_top_deps(self, n:int):
+        top_deps = sorted(
+            ((dep, count) for dep, count in self._dep_count_map.items()),
+            key=lambda v: v[1], reverse=True
+        )
+        return top_deps[:n]
+    
+
 class DepAnalyzer:
 
     def __init__(self, is_ascii: bool = False) -> None:
@@ -40,6 +66,7 @@ class DepAnalyzer:
         self._path_dep_map: dict[Path, set[str]] = {}
         self._path_unused_import_map: dict[Path, set[str]] = {}
         self._local_deps: set[str] = set()
+        self._stats: Stats = Stats()
         self._is_ascii: bool = is_ascii
         self._tree_prefix_char = (
             "├──" if not self._is_ascii else "|__"
@@ -68,6 +95,10 @@ class DepAnalyzer:
     def ignorelist(self) -> tuple[str]:
         """Get ignored directories"""
         return tuple(self._ignorelist)
+
+    @property
+    def stats(self):
+        return self._stats
 
     def _get_file_deps(self, fpath: str) -> list[tuple[str, int]]:
         """Get dependencies in a file"""
@@ -119,21 +150,48 @@ class DepAnalyzer:
         self._path_dep_map = {}
         self._local_deps = set()
 
-    def scan(self, root: str = ".") -> None:
+    def _update_stats_deptypes(self) -> None:
+        """Updates stats dependency types count"""
+        typecount = {}
+        for dep, deptype in self._dep_type_map.items():
+            typecount[deptype] = typecount.setdefault(deptype, 0) + 1
+        self._stats.stdlib = typecount[DepType.STDLIB]
+        self._stats.third_party = typecount[DepType.THIRD_PARTY]
+        self._stats.local = typecount[DepType.LOCAL]
+
+    def _update_stats_depcount(self, deps: list[Dependency]):
+        """Updates stats dependency and count"""
+        dep_count = Counter(dep.module for dep in deps)
+        self._stats.update_dep_count(dict(dep_count))
+
+    def analyze(self, root: str = ".") -> None:
         """Scans a python file(s) in a directory/sub-directory"""
         self._reset_vars()
         self._root = Path(root)
+        self._stats = Stats()
         for path in walkpath(root, self._ignorelist):
             visitor = self._get_visitor(str(path.resolve()))
             deps = visitor.deps
-            #deps = self._get_file_deps(str(path.resolve()))
             if deps:
                 self._local_deps.update(dep.module for dep in deps if dep.level > 0)
-            deps = set(dep.module for dep in deps)
+            unique_deps = set(dep.module for dep in deps)
             relpath =  path.relative_to(self._root)
-            self._path_dep_map[relpath] = deps
-            self._update_deptype_map(deps)
-            self._path_unused_import_map[relpath] = visitor.unused_imports
+            self._path_dep_map[relpath] = unique_deps
+            self._update_deptype_map(unique_deps)
+
+            used_imports = visitor.used_imports
+            unused_imports = visitor.unused_imports
+            self._path_unused_import_map[relpath] = unused_imports
+
+            self._stats.files += 1
+            self._stats.import_statements += visitor.import_statements
+            self._stats.imported_items += len(deps)
+            self._stats.used_imports += len(used_imports)
+            self._stats.unused_imports += len(unused_imports)
+            self._update_stats_depcount(deps)
+
+        self._stats.unique_deps = len(self._dep_type_map)
+        self._update_stats_deptypes()
 
     def get_deps(self, filters: DepType = DepType.ALL) -> tuple[str]:
         deps = self._get_filtered_deps(filters) 
@@ -356,7 +414,30 @@ class DepAnalyzer:
         self._print(f"[bold magenta]Root ({self._root})[/bold magenta]")
         showdep(self._unused_import_tree)
 
-
+    def show_stats(self, *args, **kwargs) -> None:
+        """Shows dependency stats"""
+        print("\nDependency Statistics")
+        print("-" * 50, end="\n\n")
+        print(f"{'Files Scanned':<25}: {self._stats.files}\n")
+        print(f"{'Imported Items':<25}: {self._stats.imported_items}")
+        print(f"{'Import Statements':<25}: {self._stats.import_statements}")
+        print(f"{'Used Imports':<25}: {self._stats.used_imports}")
+        print(f"{'Unused Imports':<25}: {self._stats.unused_imports}\n")
+        print(f"{'Unique Dependencies':<25}: {self._stats.unique_deps}\n")
+        print("Dependency Types")
+        print("-" * 50, end="\n\n")
+        print(f"{'Standard library':<25}: {self._stats.stdlib}")
+        print(f"{'Third-party':<25}: {self._stats.third_party}")
+        print(f"{'Local':<25}: {self._stats.local}\n")
+        print("Top Dependencies")
+        print("-" * 50, end="\n\n")
+        top_deps = "\n".join([
+            f"{dep:<25}{count}"
+            for dep, count 
+            in self._stats.get_top_deps(10)
+        ])
+        print(top_deps)
+ 
 
 if __name__ == "__main__":
     pass
