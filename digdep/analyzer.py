@@ -33,7 +33,7 @@ class DepType(Flag):
 @dataclass
 class Stats:
     files: int = 0
-    imported_items: int = 0
+    imported_names: int = 0
     import_statements: int = 0
     unique_deps: int = 0
     used_imports: int = 0
@@ -150,7 +150,11 @@ class DepAnalyzer:
         self._path_dep_map = {}
         self._local_deps = set()
 
-    def _update_stats_deptypes(self) -> None:
+    def _update_stats_unique_dep_count(self) -> None:
+        """Update stats unique deps"""
+        self._stats.unique_deps = len(self._dep_type_map)
+
+    def _update_stats_deptype_count(self) -> None:
         """Updates stats dependency types count"""
         typecount = Counter(
             deptype for deptype in self._dep_type_map.values()
@@ -159,9 +163,17 @@ class DepAnalyzer:
         self._stats.third_party = typecount.get(DepType.THIRD_PARTY, 0)
         self._stats.local = typecount.get(DepType.LOCAL, 0)
 
-    def _update_stats_depcount(self, deps: list[Dependency]):
-        """Updates stats dependency and count"""
-        dep_count = Counter(dep.module for dep in deps)
+    def _update_stats(
+        self, visitor: DependencyVisitor, nfiles: int = 1
+    ) -> None:
+        """Update stats"""
+        self._stats.files += nfiles
+        self._stats.import_statements += visitor.import_statements
+        self._stats.imported_names += len(visitor.import_names)
+        self._stats.used_imports += visitor.used_imports_count
+        self._stats.unused_imports += visitor.unused_imports_count
+
+        dep_count = Counter(dep.module for dep in visitor.deps)
         self._stats.update_dep_count(dict(dep_count))
 
     def analyze(self, root: str = ".") -> None:
@@ -178,20 +190,12 @@ class DepAnalyzer:
             relpath =  path.relative_to(self._root)
             self._path_dep_map[relpath] = unique_deps
             self._update_deptype_map(unique_deps)
+            self._path_unused_import_map[relpath] = visitor.unused_imports
 
-            used_imports = visitor.used_imports
-            unused_imports = visitor.unused_imports
-            self._path_unused_import_map[relpath] = unused_imports
+            self._update_stats(visitor)
 
-            self._stats.files += 1
-            self._stats.import_statements += visitor.import_statements
-            self._stats.imported_items += len(deps)
-            self._stats.used_imports += len(used_imports)
-            self._stats.unused_imports += len(unused_imports)
-            self._update_stats_depcount(deps)
-
-        self._stats.unique_deps = len(self._dep_type_map)
-        self._update_stats_deptypes()
+        self._update_stats_unique_dep_count()
+        self._update_stats_deptype_count()
 
     def get_deps(self, filters: DepType = DepType.ALL) -> tuple[str]:
         deps = self._get_filtered_deps(filters) 
@@ -387,12 +391,9 @@ class DepAnalyzer:
         self._gen_unused_import_tree()
         return self._unused_import_tree
 
-    def show_unused_imports(self, filters: DepType = DepType.ALL) -> None:
+    def show_unused_imports(self, **kwargs) -> None:
         """Show file and unused imports"""
         self._gen_unused_import_tree()
-        relevant_deps = (
-            self._get_filtered_deps(filters) if filters else set()
-        )
         def showdep(branch: dict, indent=0):
             files = branch.get("files", [])
             tree_prefix = self._tree_prefix(indent)
@@ -400,7 +401,7 @@ class DepAnalyzer:
                 max(len(file) for file, _ in files) if files else 0
             )
             for file, deps in files:
-                deps = deps.intersection(relevant_deps)
+                #deps = deps.intersection(relevant_deps)
                 deps = ", ".join(sorted(deps))
                 deps = f" → [bold cyan]{deps}[/bold cyan]" if deps else ""
                 self._print(f"{tree_prefix} {file:<{maxwidth}}{deps}")
@@ -416,14 +417,25 @@ class DepAnalyzer:
 
     def show_stats(self, **kwargs) -> None:
         """Shows dependency stats"""
-        topn = kwargs.get("topn", 5)
+        topn = kwargs.get("topn")
+        topn = topn if topn is not None else 5
         print("\nDependency Statistics")
         print("-" * 50, end="\n\n")
         print(f"{'Files Scanned':<25}: {self._stats.files}\n")
-        print(f"{'Imported Items':<25}: {self._stats.imported_items}")
+        print(f"{'Imported Names':<25}: {self._stats.imported_names}")
         print(f"{'Import Statements':<25}: {self._stats.import_statements}")
-        print(f"{'Used Imports':<25}: {self._stats.used_imports}")
-        print(f"{'Unused Imports':<25}: {self._stats.unused_imports}\n")
+        print(
+            (
+                f"{'Used Imports':<25}: "
+                f"{self._stats.used_imports:<5} import occurances"
+            )
+        )
+        print(
+            (
+                f"{'Unused Imports':<25}: "
+                f"{self._stats.unused_imports:<5} import occurances\n"
+            )
+        )
         print(f"{'Unique Dependencies':<25}: {self._stats.unique_deps}\n")
         print("Dependency Types")
         print("-" * 50, end="\n\n")

@@ -1,4 +1,4 @@
-# Python Library
+# DigDep Library
 
 The `digdep` library provides a Python API for analyzing import dependencies in Python projects. It can be used to inspect project dependencies, generate dependency trees, detect unused imports, and collect dependency statistics.
 

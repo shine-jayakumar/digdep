@@ -42,6 +42,7 @@ class DependencyVisitor(ast.NodeVisitor):
         self._deps: list[Dependency] = []
         self._import_name_map: dict[ImportName, list[ImportItem]] = {}
         self._used_importnames: set[ImportName] = set()
+        self._unused_imports: set[str] = set()
         self._import_statements: int = 0
 
     @property
@@ -49,22 +50,39 @@ class DependencyVisitor(ast.NodeVisitor):
         return self._deps
 
     @property
-    def imports(self):
+    def import_names(self):
         return self._import_name_map
 
     @property
     def used_imports(self):
-        return set(self._used_importnames)
+        return self._used_importnames
+
+    @property
+    def used_imports_count(self):
+        return len(self._used_importnames)
 
     @property
     def unused_imports(self):
-        imported_names = set(self._import_name_map.keys())
-        unused_names = imported_names.difference(self._used_importnames)
-        return unused_names
+        self._populate_unused_imports()
+        return self._unused_imports
+
+    @property
+    def unused_imports_count(self):
+        self._populate_unused_imports()
+        return len(self._unused_imports)
 
     @property
     def import_statements(self):
         return self._import_statements
+
+    def _populate_unused_imports(self) -> None:
+        """Populate unused imports"""
+        if self._unused_imports:
+            return
+        imported_names = set(self._import_name_map.keys())
+        self._unused_imports = imported_names.difference(
+            self._used_importnames
+        )
 
     def _get_toplevel_module(self, name: str) -> str:
         """Get the top level module"""
@@ -76,9 +94,9 @@ class DependencyVisitor(ast.NodeVisitor):
             return
 
         for alias in node.names:
-            importkey = alias.asname or alias.name
+            import_name = alias.asname or alias.name
             self._import_name_map.setdefault(
-                importkey, []
+                import_name, []
             ).append(
                 ImportItem(
                     imported=alias.name,

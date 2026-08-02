@@ -12,7 +12,7 @@ def test_stats():
     stats = analyzer.stats
 
     assert stats.files == 13
-    assert stats.imports == 26
+    assert stats.imported_names == 25
     assert stats.used_imports == 16
     assert stats.unused_imports == 9
 
