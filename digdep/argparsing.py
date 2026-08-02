@@ -114,6 +114,13 @@ stats = subparsers.add_parser(
     help="Show dependency statistics."
 )
 add_common_args(stats)
+stats.add_argument(
+    "-tn",
+    "--topn",
+    type=int,
+    metavar="NUM",
+    help="Select top n dependencies."
+)
 
 
 def parse_args() -> argparse.Namespace:

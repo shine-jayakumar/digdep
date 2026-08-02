@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 
 ---
+## [0.0.9] - 2026-08-02
+
+### Added
+- Add the `--topn` (`-tn`) option to the `stats` command for displaying the top N dependencies.
+
+### Changed
+- Refactor dependency type counting.
+- Update the statistics output to display a configurable number of top dependencies.
+
 
 ## [0.0.8] - 2026-08-01
 

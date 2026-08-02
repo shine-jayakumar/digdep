@@ -152,12 +152,12 @@ class DepAnalyzer:
 
     def _update_stats_deptypes(self) -> None:
         """Updates stats dependency types count"""
-        typecount = {}
-        for dep, deptype in self._dep_type_map.items():
-            typecount[deptype] = typecount.setdefault(deptype, 0) + 1
-        self._stats.stdlib = typecount[DepType.STDLIB]
-        self._stats.third_party = typecount[DepType.THIRD_PARTY]
-        self._stats.local = typecount[DepType.LOCAL]
+        typecount = Counter(
+            deptype for deptype in self._dep_type_map.values()
+        )
+        self._stats.stdlib = typecount.get(DepType.STDLIB, 0)
+        self._stats.third_party = typecount.get(DepType.THIRD_PARTY, 0)
+        self._stats.local = typecount.get(DepType.LOCAL, 0)
 
     def _update_stats_depcount(self, deps: list[Dependency]):
         """Updates stats dependency and count"""
@@ -414,8 +414,9 @@ class DepAnalyzer:
         self._print(f"[bold magenta]Root ({self._root})[/bold magenta]")
         showdep(self._unused_import_tree)
 
-    def show_stats(self, *args, **kwargs) -> None:
+    def show_stats(self, **kwargs) -> None:
         """Shows dependency stats"""
+        topn = kwargs.get("topn", 5)
         print("\nDependency Statistics")
         print("-" * 50, end="\n\n")
         print(f"{'Files Scanned':<25}: {self._stats.files}\n")
@@ -429,12 +430,12 @@ class DepAnalyzer:
         print(f"{'Standard library':<25}: {self._stats.stdlib}")
         print(f"{'Third-party':<25}: {self._stats.third_party}")
         print(f"{'Local':<25}: {self._stats.local}\n")
-        print("Top Dependencies")
+        print(f"Top {topn} Dependencies")
         print("-" * 50, end="\n\n")
         top_deps = "\n".join([
             f"{dep:<25}{count}"
             for dep, count 
-            in self._stats.get_top_deps(10)
+            in self._stats.get_top_deps(topn)
         ])
         print(top_deps)
  

@@ -40,61 +40,55 @@ The following options are available for all commands.
 
 ---
 
-## Examples
+# Command Reference
 
-### List dependencies
+## `deps`
+
+List all detected dependencies.
+
+### Examples
 
 ```bash
 digdep deps ./myproject
 ```
 
-### Display the file dependency tree
-
-```bash
-digdep file-tree ./myproject
-```
-
-### Display the dependency tree
-
-```bash
-digdep dep-tree ./myproject
-```
-
-### Find unused imports
-
-```bash
-digdep unused-imports ./myproject
-```
-
-### Show dependency statistics
-
-```bash
-digdep stats ./myproject
-```
-
-### Ignore directories
-
-```bash
-digdep file-tree ./myproject --ignore venv __pycache__ tests
-```
-
-### Read ignored paths from a file
-
-```bash
-digdep deps ./myproject --ignore-file .digdepignore
-```
-
-### Filter dependency types
+Show only third-party dependencies.
 
 ```bash
 digdep deps ./myproject --type third-party
 ```
 
+Show standard library and local dependencies.
+
 ```bash
 digdep deps ./myproject --type stdlib,local
 ```
 
-### Save output to a file
+---
+
+## `file-tree`
+
+Display the File → Dependency tree.
+
+### Examples
+
+```bash
+digdep file-tree ./myproject
+```
+
+Ignore directories while scanning.
+
+```bash
+digdep file-tree ./myproject --ignore venv __pycache__ tests
+```
+
+Read ignored paths from a file.
+
+```bash
+digdep file-tree ./myproject --ignore-file .digdepignore
+```
+
+Write the output to a JSON file.
 
 ```bash
 digdep file-tree ./myproject --output file_tree.json
@@ -106,8 +100,70 @@ or
 digdep file-tree ./myproject -o file_tree.json
 ```
 
-### Redirect output using the shell
+---
+
+## `dep-tree`
+
+Display the Dependency → File tree.
+
+### Examples
+
+```bash
+digdep dep-tree ./myproject
+```
+
+Redirect the output using the shell.
 
 ```bash
 digdep dep-tree ./myproject > dependencies.txt
+```
+
+---
+
+## `unused-imports`
+
+Display unused imports grouped by file.
+
+### Examples
+
+```bash
+digdep unused-imports ./myproject
+```
+
+Show only unused standard library imports.
+
+```bash
+digdep unused-imports ./myproject --type stdlib
+```
+
+Show only unused local imports.
+
+```bash
+digdep unused-imports ./myproject --type local
+```
+
+---
+
+## `stats`
+
+Display dependency statistics for the project.
+
+### Options
+
+| Option | Description |
+| ------ | ----------- |
+| `-tn`, `--topn NUM` | Display the top **NUM** imported dependencies. Defaults to `5`. |
+
+### Examples
+
+Display project statistics.
+
+```bash
+digdep stats ./myproject
+```
+
+Display the top 10 imported dependencies.
+
+```bash
+digdep stats ./myproject --topn 10
 ```

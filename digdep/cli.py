@@ -54,6 +54,8 @@ def process_command(args, analyzer: DepAnalyzer) -> None:
     if output_type:
         funcname = f"{cmd}_{output_type}"
         kwargs["fpath"] = args.output
+    if args.topn:
+        kwargs["topn"] = args.topn
     func = getattr(analyzer, funcname, None)
     if not callable(func):
         raise CLICommandError("Invalid command '{args.command}'")
