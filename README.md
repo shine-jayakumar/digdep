@@ -139,6 +139,26 @@ Root (/projects/example)
     └── helpers.py       → functools
 ```
 
+### Find Dependency
+```text
+Dependency: ctypes
+├── accessibleinfo.py
+    ├── Line 1    : from ctypes import c_float
+    ├── Line 2    : from ctypes import c_int
+    ├── Line 3    : from ctypes import c_wchar
+    ├── Line 4    : from ctypes import c_bool
+    ├── Line 5    : from ctypes import Structure
+    ├── Line 6    : from ctypes.wintypes import BOOL
+    ├── Line 7    : from ctypes.wintypes import WCHAR
+    │
+├── jabdriver.py
+    ├── Line 5    : from ctypes import byref
+    ├── Line 6    : from ctypes import CDLL
+    ├── Line 7    : from ctypes import c_long
+    ├── Line 8    : from ctypes.wintypes import HWND
+    │
+```
+
 ---
 
 ## Documentation
