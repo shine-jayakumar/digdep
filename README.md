@@ -18,9 +18,17 @@ A lightweight Python dependency analyzer that scans Python projects and visualiz
 - Generate **File → Dependency** trees
 - Generate **Dependency → File** trees
 - Detect unused imports
-- Filter dependencies by type (Standard Library, Third-party, Local)
-- Export results as JSON
+- Find files that import a specific dependency
+- Show exact import lines for a dependency
+- Filter dependencies by type:
+  - Standard Library
+  - Third-party
+  - Local
+- Ignore files and directories during analysis
+- Read ignore patterns from a file
+- Export analysis results as JSON
 - Use from the command line or as a Python library
+- Support ASCII output for environments where Unicode tree characters are unavailable
 
 ---
 
@@ -31,34 +39,64 @@ pip install digdep
 ```
 
 ---
-
 # Quick Start
 
 ## Command Line
 
-List project dependencies.
+List project dependencies:
 
 ```bash
 digdep deps ./myproject
 ```
 
-Show the File → Dependency tree.
+Show the File → Dependency tree:
 
 ```bash
-digdep file-tree ./myproject
+digdep deps ./myproject --tree
 ```
 
-Show the Dependency → File tree.
+Show the Dependency → File tree:
 
 ```bash
-digdep dep-tree ./myproject
+digdep deps ./myproject --tree --reverse
 ```
 
-Show unused imports.
+Show unused imports:
 
 ```bash
-digdep unused-imports ./myproject
+digdep deps ./myproject --unused
 ```
+
+Show unused imports as a tree:
+
+```bash
+digdep deps ./myproject --unused --tree
+```
+
+Find files importing a dependency:
+
+```bash
+digdep find-dep requests ./myproject
+```
+
+Show the dependency as a file tree:
+
+```bash
+digdep find-dep requests ./myproject --tree
+```
+
+Show the exact import lines:
+
+```bash
+digdep find-dep requests ./myproject --tree --showlines
+```
+
+Export results as JSON:
+
+```bash
+digdep deps ./myproject --tree -o file_tree.json
+```
+
 
 For the complete CLI reference, see:
 
@@ -66,7 +104,7 @@ For the complete CLI reference, see:
 
 ---
 
-## Python Library
+## DigDep Library
 
 ```python
 from digdep import DepAnalyzer
@@ -79,7 +117,7 @@ analyzer.show_deps()
 
 For the complete Python API guide, see:
 
-**📖 [Python Library Documentation](https://github.com/shine-jayakumar/digdep/blob/master/docs/API.md)**
+**📖 [DigDep Library Documentation](https://github.com/shine-jayakumar/digdep/blob/master/docs/API.md)**
 
 ---
 
