@@ -19,7 +19,7 @@ Examples:
   digdep deps ./myproject --tree
   digdep deps ./myproject --tree --reverse
   digdep deps ./myproject --tree -o file_tree.json
-  digdep unused-imports ./myproject
+  digdep deps ./myproject --tree --unused
 
 Ignore directories:
   digdep deps ./myproject --ignore venv __pycache__ tests
