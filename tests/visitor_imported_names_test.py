@@ -13,7 +13,7 @@ def imported_names(visitor, code: str):
     visitor.visit(tree)
     return [
         item
-        for items in visitor.imports.values()
+        for items in visitor.import_names.values()
         for item in items
     ]
 
@@ -308,7 +308,7 @@ from pathlib import Path
     tree = ast.parse(code)
     visitor.visit(tree)
 
-    assert set(visitor.imports) == {
+    assert set(visitor.import_names) == {
         "np",
         "pandas",
         "Path",
@@ -325,5 +325,5 @@ except ImportError:
     tree = ast.parse(code)
     visitor.visit(tree)
 
-    assert list(visitor.imports) == ["json"]
-    assert len(visitor.imports["json"]) == 2
+    assert list(visitor.import_names) == ["json"]
+    assert len(visitor.import_names["json"]) == 2

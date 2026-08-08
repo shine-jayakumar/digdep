@@ -1,8 +1,56 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+# Changelog
 
----
+## [0.1.1] - 2026-08-08
+
+### Added
+
+- Added the `find-dep` command for finding files that import a specific dependency.
+  - Added `--tree` output mode.
+  - Added `--showlines` to display the exact import lines.
+  - Added JSON output support.
+- Added a CLI dispatcher architecture to separate command dispatching from argument parsing and analyzer execution.
+- Added dedicated CLI option classes for translating command-line arguments into analyzer arguments.
+- Added command handler classes for:
+  - `deps`
+  - `stats`
+  - `find-dep`
+- Added validation for incompatible CLI arguments, including:
+  - `--reverse` requires `--tree`.
+  - `--reverse` cannot be combined with `--unused`.
+  - `--showlines` requires `--tree`.
+- Added dedicated CLI exceptions for unmapped commands, invalid analyzer functions, and invalid arguments.
+- Added support for dependency lookup through the analyzer API, including finding dependency instances and displaying/exporting files containing a dependency.
+- Added support for displaying and exporting dependency file trees with optional import line information.
+
+### Changed
+
+- Consolidated the previous `file-tree`, `dep-tree`, and `unused-imports` CLI commands into the `deps` command using options:
+  - `--tree`
+  - `--reverse`
+  - `--unused`
+- Updated the CLI to use the new dispatcher and command-handler architecture.
+- Refactored CLI dependency type filtering into a dedicated `DepFilter` option.
+- Renamed and aligned dependency tree analyzer APIs around:
+  - `filedep_tree`
+  - `depfiles_tree`
+- Updated imported-name tracking in the AST visitor from `imports` to `import_names`.
+- Updated CLI and API documentation to reflect the new command structure and analyzer APIs.
+
+### Documentation
+
+- Updated CLI documentation for the consolidated `deps` command and new `find-dep` command.
+- Updated API documentation with the new dependency lookup, tree, filtering, and unused-import APIs.
+- Added examples for dependency filtering, dependency lookup, tree output, JSON export, and showing import lines.
+
+### Tests
+
+- Updated imported-name visitor tests to use the new `import_names` attribute.
+- Updated visitor assertions to reflect the renamed import tracking structure.
+
+
 ## [0.0.9] - 2026-08-02
 
 ### Added

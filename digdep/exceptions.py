@@ -27,7 +27,17 @@ class CLICommandError(DigDepException):
     """Raise when an invalid command is received"""
     pass
 
+class CommandNotMappedError(DigDepException):
+    """Raise when a command is not mapped to an analyzer function"""
+    pass
 
+class InvalidAnalyzerFunctionError(DigDepException):
+    """Raise when an invalid analyzer function is called"""
+    pass
+
+class InvalidArgumentError(DigDepException):
+    """Raise when invalid arguments are passed"""
+    pass
 
 
 

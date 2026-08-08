@@ -8,6 +8,4 @@ See the LICENSE file in the project root for the full license text.
 DigDep version
 """
 
-__version__ = "0.1.0"
-
-
+__version__ = "0.1.1"

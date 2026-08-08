@@ -16,16 +16,16 @@ DESCRIPTION = "Scan Python projects and inspect import dependencies."
 EXAMPLES = """
 Examples:
   digdep deps ./myproject
-  digdep file-tree ./myproject
-  digdep dep-tree ./myproject
+  digdep deps ./myproject --tree
+  digdep deps ./myproject --tree --reverse
+  digdep deps ./myproject --tree -o file_tree.json
   digdep unused-imports ./myproject
-  digdep file-tree ./myproject -o file_tree.json
 
 Ignore directories:
-  digdep file-tree ./myproject --ignore venv __pycache__ tests
+  digdep deps ./myproject --ignore venv __pycache__ tests
 
 Redirect output:
-  digdep dep-tree ./myproject > dependencies.txt
+  digdep deps ./myproject > dependencies.txt
 """
 
 def add_common_args(parser: argparse.ArgumentParser) -> None:
@@ -89,25 +89,49 @@ deps = subparsers.add_parser(
     "deps",
     help = "List dependencies."
 )
+deps.add_argument(
+    "--tree",
+    action="store_true",
+    help="Show file to dependency tree"
+)
+deps.add_argument(
+    "--reverse",
+    action="store_true",
+    help="Show dependency to file tree"
+)
+deps.add_argument(
+    "--unused",
+    action="store_true",
+    help="Show only unused imports"
+)
 add_common_args(deps)
 
-file_tree = subparsers.add_parser(
-    "file-tree",
-    help="Show the file -> dependency tree."
-)
-add_common_args(file_tree)
-
-dep_tree = subparsers.add_parser(
-    "dep-tree",
-    help="Show the dependency -> file tree."
-)
-add_common_args(dep_tree)
-
-unused_import_tree = subparsers.add_parser(
-    "unused-imports",
-    help="Show the file -> unused imports tree."
-)
-add_common_args(unused_import_tree)
+#file_tree = subparsers.add_parser(
+#    "file-deps",
+#    help="Show the file -> dependency tree."
+#)
+#add_common_args(file_tree)
+#
+#dep_files = subparsers.add_parser(
+#    "dep-files",
+#    help="Show the dependency -> file tree."
+#)
+#add_common_args(dep_files)
+#output_type = dep_files.add_mutually_exclusive_group()
+#dep_files.add_argument(
+#    "-tr",
+#    "--tree",
+#    action="store_true",
+#    help="Show output as tree"
+#)
+#
+#
+#
+#unused_import_tree = subparsers.add_parser(
+#    "unused-imports",
+#    help="Show the file -> unused imports tree."
+#)
+#add_common_args(unused_import_tree)
 
 stats = subparsers.add_parser(
     "stats",
@@ -122,6 +146,27 @@ stats.add_argument(
     help="Select top n dependencies."
 )
 
+find_dep = subparsers.add_parser(
+    "find-dep",
+    help="Find files importing a dependency."
+)
+find_dep.add_argument(
+    "dependency",
+    metavar="DEPENDENCY",
+    help="Name of the dependency to look for."
+)
+find_dep.add_argument(
+    "--tree",
+    action="store_true",
+    help="Show files with dependency as tree."
+)
+find_dep.add_argument(
+    "-sl",
+    "--showlines",
+    action="store_true",
+    help="Show lines with dependency."
+)
+add_common_args(find_dep)
 
 def parse_args() -> argparse.Namespace:
     """Parse arguments"""

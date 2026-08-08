@@ -11,11 +11,15 @@ Core dependency analyzer
 import ast
 from pathlib import Path
 from rich.console import Console
+from rich.text import Text
+from rich.syntax import Syntax
 from enum import Flag, auto
 import sys
 import json
 from dataclasses import dataclass, field
 from collections import Counter
+from linecache import getline
+import re
 from .visitors import DependencyVisitor, Dependency
 from .utils import walkpath
 from .exceptions import *
@@ -58,18 +62,24 @@ class DepAnalyzer:
 
     def __init__(self, is_ascii: bool = False) -> None:
         self._root: Path = None
-        self._filedep_tree = {}
-        self._depfile_tree = {}
+        self._filesdep_tree = {}
+        self._depfiles_tree = {}
         self._unused_import_tree = {}
+        self._files_with_dep_tree = {}
         self._dep_type_map: dict[str, DepType] = {}
         self._ignorelist: set[str] = set()
-        self._path_dep_map: dict[Path, set[str]] = {}
+        self._path_unique_dep_map: dict[Path, set[str]] = {}
         self._path_unused_import_map: dict[Path, set[str]] = {}
+        self._path_dependency_map: dict[Path, list[Dependency]] = {}
         self._local_deps: set[str] = set()
+        self._unused_deps: set[str] = set()
         self._stats: Stats = Stats()
         self._is_ascii: bool = is_ascii
         self._tree_prefix_char = (
             "├──" if not self._is_ascii else "|__"
+        )
+        self._vertical_space_char = (
+            "│" if not self._is_ascii else "|"
         )
         self._console = Console()
 
@@ -144,11 +154,12 @@ class DepAnalyzer:
 
     def _reset_vars(self) -> None:
         """Resets variables"""
-        self._filedep_tree = {}
-        self._depfile_tree = {}
+        self._filesdep_tree = {}
+        self._depfiles_tree = {}
         self._dep_type_map = {}
-        self._path_dep_map = {}
+        self._path_unique_dep_map = {}
         self._local_deps = set()
+        self._path_dependency_map = {}
 
     def _update_stats_unique_dep_count(self) -> None:
         """Update stats unique deps"""
@@ -188,9 +199,11 @@ class DepAnalyzer:
                 self._local_deps.update(dep.module for dep in deps if dep.level > 0)
             unique_deps = set(dep.module for dep in deps)
             relpath =  path.relative_to(self._root)
-            self._path_dep_map[relpath] = unique_deps
+            self._path_unique_dep_map[relpath] = unique_deps
             self._update_deptype_map(unique_deps)
             self._path_unused_import_map[relpath] = visitor.unused_imports
+            self._unused_deps.update(visitor.unused_imports)
+            self._path_dependency_map[relpath] = deps
 
             self._update_stats(visitor)
 
@@ -221,7 +234,7 @@ class DepAnalyzer:
     def _vertical_spacer(self, indent: int = 0) -> str:
         """Generates a vertical spacer"""
         spaces = " " * indent
-        return f"{spaces}|"
+        return f"{spaces}{self._vertical_space_char}"
 
     def _print(self, text: str) -> None:
         """Coloured print"""
@@ -229,28 +242,28 @@ class DepAnalyzer:
 
     def _gen_filedeps_tree(self) -> None:
         """Generate file dependency tree"""
-        if self._filedep_tree:
-            return self._filedep_tree
-        self._filedep_tree = {"files": []}
-        for path, deps in self._path_dep_map.items():
+        if self._filesdep_tree:
+            return self._filesdep_tree
+        self._filesdep_tree = {"files": []}
+        for path, deps in self._path_unique_dep_map.items():
             dirparts = path.parent.parts
-            branch = self._filedep_tree
+            branch = self._filesdep_tree
             for part in dirparts:
                 branch = branch.setdefault(part, {"files": []})
-            branch["files"].append((path.name, deps))
+            branch["files"].append((path, deps))
 
     def _gen_depfiles_tree(self) -> None:
         """Generate dependency file tree"""
-        if self._depfile_tree:
-            return self._depfile_tree
-        self._depfile_tree = {}
-        for path, deps in self._path_dep_map.items():
+        if self._depfiles_tree:
+            return self._depfiles_tree
+        self._depfiles_tree = {}
+        for path, deps in self._path_unique_dep_map.items():
             dirparts = path.parent.parts
             for dep in deps:
-                branch = self._depfile_tree.setdefault(dep, {"files": []})
+                branch = self._depfiles_tree.setdefault(dep, {"files": []})
                 for part in dirparts:
                     branch = branch.setdefault(part, {"files": []})
-                branch["files"].append(path.name)
+                branch["files"].append(path)
 
     def _gen_unused_import_tree(self) -> None:
         """Generate unused import tree"""
@@ -262,9 +275,9 @@ class DepAnalyzer:
             branch = self._unused_import_tree
             for part in dirparts:
                 branch = branch.setdefault(part, {"files": []})
-            branch["files"].append((path.name, unused_imports))
+            branch["files"].append((path, unused_imports))
 
-    def _get_filtered_deps(self, filters: DepType) -> set[str]:
+    def _get_filtered_deps(self, filters: DepType = DepType.ALL) -> set[str]:
         """Filter dependencies by type"""
         return {
             dep
@@ -275,9 +288,9 @@ class DepAnalyzer:
     def get_file_tree(self, filters: DepType = DepType.ALL) -> dict:
         """Get the file-dependency tree"""
         self._gen_filedeps_tree()
-        return self._filedep_tree
+        return self._filesdep_tree
 
-    def file_tree_json(
+    def filedep_tree_json(
         self, fpath: str, filters: DepType = DepType.ALL
     ) -> str | None:
         """Dump File-Dependency tree to json"""
@@ -288,40 +301,41 @@ class DepAnalyzer:
         json_tree = {}
 
         def copytree(src_branch: dict, dst_branch: dict):
-            files = src_branch.get("files", [])
+            path_deps = src_branch.get("files", [])
             dst_branch["files"] = {}
-            for file, deps in files:
+            for path, deps in path_deps:
                 deps = deps.intersection(relevant_deps)
-                dst_branch["files"][file] = sorted(deps)
+                dst_branch["files"][path.name] = sorted(deps)
 
             dirs = {k:v for k,v in src_branch.items() if isinstance(v, dict)}
             for _dir, val in dirs.items():
                 dst_branch[_dir] = {}
                 copytree(val, dst_branch[_dir])
 
-        copytree(self._filedep_tree, json_tree)
+        copytree(self._filesdep_tree, json_tree)
         if fpath:
             json.dump(json_tree, open(fpath, "w"), indent=4)
             return
         return json.dumps(json_tree, ident=4)
 
-    def show_file_tree(self, filters: DepType = DepType.ALL) -> None:
+    def show_filedep_tree(self, filters: DepType = DepType.ALL) -> None:
         """Show file and dependencies"""
         self._gen_filedeps_tree()
         relevant_deps = (
             self._get_filtered_deps(filters) if filters else set()
         )
         def showdep(branch: dict, indent=0):
-            files = branch.get("files", [])
+            path_deps = branch.get("files", [])
             tree_prefix = self._tree_prefix(indent)
             maxwidth = (
-                max(len(file) for file, _ in files) if files else 0
+                max(len(path.name) for path, _ in path_deps) 
+                if path_deps else 0
             )
-            for file, deps in files:
+            for path, deps in path_deps:
                 deps = deps.intersection(relevant_deps)
                 deps = ", ".join(sorted(deps))
                 deps = f" → [bold cyan]{deps}[/bold cyan]" if deps else ""
-                self._print(f"{tree_prefix} {file:<{maxwidth}}{deps}")
+                self._print(f"{tree_prefix} {path.name:<{maxwidth}}{deps}")
 
             dirs = {k:v for k,v in branch.items() if isinstance(v, dict)}
             for _dir, val in dirs.items():
@@ -330,26 +344,37 @@ class DepAnalyzer:
                 showdep(val, indent + 4)
 
         self._print(f"[bold magenta]Root ({self._root})[/bold magenta]")
-        showdep(self._filedep_tree)
+        showdep(self._filesdep_tree)
 
-    def get_dep_tree(self, filters: DepType = DepType.ALL) -> dict:
+    def get_depfiles_tree(self, filters: DepType = DepType.ALL) -> dict:
         """Get the dependency-file tree"""
         self._gen_depfiles_tree()
-        return self._depfile_tree
+        return self._depfiles_tree
 
-    def dep_tree_json(
+    def depfiles_tree_json(
         self, fpath: str, filters: DepType = DepType.ALL
     ) -> str | None:
         """Dump Dependency-File tree to json"""
+        def convert_tree(tree):
+            newtree = {}
+            newtree["files"] = [path.name for path in tree.get("files", [])]
+            dirnames = [
+                dirname for dirname, val in tree.items()
+                if isinstance(val, dict)
+            ]
+            for dirname in dirnames:
+                newtree[dirname] = convert_tree(tree.get(dirname))
+            return newtree
+            
         self._gen_depfiles_tree()
         relevant_deps = (
             self._get_filtered_deps(filters) if filters else set()
         )
         filtered_deps = (
-            set(self._depfile_tree.keys()).intersection(relevant_deps)
+            set(self._depfiles_tree.keys()).intersection(relevant_deps)
         )
         json_tree = {
-            dep: self._depfile_tree.get(dep)
+            dep: convert_tree(self._depfiles_tree.get(dep))
             for dep in filtered_deps
         }
         if fpath:
@@ -357,17 +382,17 @@ class DepAnalyzer:
             return
         return json.dumps(json_tree, indent=4)
 
-    def show_dep_tree(self, filters: DepType = DepType.ALL) -> None:
+    def show_depfiles_tree(self, filters: DepType = DepType.ALL) -> None:
         """Show dependency and files"""
         self._gen_depfiles_tree()
         relevant_deps = (
             self._get_filtered_deps(filters) if filters else set()
         )
         def showfiles(branch: dict, indent=0):
-            files = branch.get("files", [])
+            paths = branch.get("files", [])
             tree_prefix = self._tree_prefix(indent)
-            for file in files:
-                print(f"{tree_prefix} {file}")
+            for path in paths:
+                print(f"{tree_prefix} {path.name}")
 
             dirs = {k:v for k,v in branch.items() if isinstance(v, dict)}
             for _dir, val in dirs.items():
@@ -376,13 +401,22 @@ class DepAnalyzer:
                 showfiles(val, indent + 4)
 
         filtered_deps = (
-            set(self._depfile_tree.keys()).intersection(relevant_deps)
+            set(self._depfiles_tree.keys()).intersection(relevant_deps)
         )
         for dep in filtered_deps:
-            deptree = self._depfile_tree.get(dep)
+            deptree = self._depfiles_tree.get(dep)
             self._print(f"[bold cyan]{dep}[/bold cyan]")
             showfiles(deptree)
             print("\n")
+
+    def dep_files(self, **kwargs) -> None:
+        """Function for dep-files command"""
+        fpath = kwargs.get("fpath")
+        filters = kwargs.get("filters")
+        if fpath is not None:
+            self.depfiles_tree_json(fpath=fpath, filters=filters)
+            return
+        self.show_depfiles_tree(filters=filters)
 
     def get_unused_imports_tree(
         self, filters: DepType = DepType.ALL
@@ -391,20 +425,19 @@ class DepAnalyzer:
         self._gen_unused_import_tree()
         return self._unused_import_tree
 
-    def show_unused_imports(self, **kwargs) -> None:
-        """Show file and unused imports"""
+    def show_unused_imports_tree(self) -> None:
+        """Show file and unused imports tree"""
         self._gen_unused_import_tree()
         def showdep(branch: dict, indent=0):
-            files = branch.get("files", [])
+            path_deps = branch.get("files", [])
             tree_prefix = self._tree_prefix(indent)
             maxwidth = (
-                max(len(file) for file, _ in files) if files else 0
+                max(len(path.name) for path, _ in path_deps) if path_deps else 0
             )
-            for file, deps in files:
-                #deps = deps.intersection(relevant_deps)
+            for path, deps in path_deps:
                 deps = ", ".join(sorted(deps))
                 deps = f" → [bold cyan]{deps}[/bold cyan]" if deps else ""
-                self._print(f"{tree_prefix} {file:<{maxwidth}}{deps}")
+                self._print(f"{tree_prefix} {path.name:<{maxwidth}}{deps}")
 
             dirs = {k:v for k,v in branch.items() if isinstance(v, dict)}
             for _dir, val in dirs.items():
@@ -415,10 +448,167 @@ class DepAnalyzer:
         self._print(f"[bold magenta]Root ({self._root})[/bold magenta]")
         showdep(self._unused_import_tree)
 
-    def show_stats(self, **kwargs) -> None:
+    def unused_imports_tree_json(self, fpath: str) -> str | None:
+        """Dump unused imports tree to json"""
+        self._gen_unused_import_tree()
+        json_tree = {}
+
+        def copytree(src_branch: dict, dst_branch: dict):
+            path_deps = src_branch.get("files", [])
+            dst_branch["files"] = {}
+            for path, deps in path_deps:
+                dst_branch["files"][path.name] = sorted(deps)
+
+            dirs = {k:v for k,v in src_branch.items() if isinstance(v, dict)}
+            for _dir, val in dirs.items():
+                dst_branch[_dir] = {}
+                copytree(val, dst_branch[_dir])
+
+        copytree(self._unused_import_tree, json_tree)
+        if fpath:
+            json.dump(json_tree, open(fpath, "w"), indent=4)
+            return
+        return json.dumps(json_tree, ident=4)
+
+    def show_unused_imports(self) -> None:
+        """Show all unused imports"""
+        for dep in self._unused_deps:
+            print(dep)
+
+    def unused_imports_json(self, fpath: str) -> None:
+        """Dump unused imports to json"""
+        json_deps = {"unused_imports": sorted(self._unused_deps)}
+        if fpath:
+            json.dump(json_deps, open(fpath, "w"), indent=4)
+        return json.dumps(json_deps, indent=4)
+
+    def find_dep_instances(
+        self, dependency: str
+    ) -> dict[Path, list[Dependency]]:
+        """Find files with instances of a dependency"""
+        dep_instances = {}
+        for path, deps in self._path_dependency_map.items():
+            relevant_deps = [
+                dep for dep in deps 
+                if re.search(rf"\b{dependency}\b", dep.module)
+            ]
+            if relevant_deps:
+                dep_instances[path] = relevant_deps
+        return dep_instances
+
+    def _get_file_lines(self, path: str, lines: list[int]) -> dict[int, str]:
+        """Get specific lines from a file"""
+        if not path.is_absolute():
+            path = self._root / path
+        lines = path.read_text(encoding="utf-8").splitlines()
+        lineno_line_map = {lineno: lines[lineno - 1] for lineno in lines}
+        return lineno_line_map
+
+    def show_files_with_dep(self, dependency: str) -> None:
+        """Show found dep in files"""
+        dep_instances = self.find_dep_instances(dependency)
+        instance_count = len([
+            dep for deps in dep_instances.values() for dep in deps
+        ])
+        text = Text("\nDependency: ")
+        text.append(dependency, style="bold cyan")
+        text.append(f" ({instance_count} instances)\n")
+        self._print(text)
+        paths = [str(path) for path in dep_instances.keys()]
+        paths = "\n".join(paths)
+        print(paths)
+
+    def files_with_dep_json(self, fpath: str, dependency: str) -> str | None:
+        """Dump files with dep to json"""
+        dep_instances = self.find_dep_instances(dependency)
+        json_output = {"dependency": dependency}
+        json_output["files"] = [str(path) for path in dep_instances.keys()]
+        if fpath:
+            json.dump(json_output, open(fpath, "w"), indent=4)
+            return
+        return json.dumps(json_output, ident=4)
+
+    def _gen_files_with_dep_tree(self, dependency: str) -> None:
+        """Generate file tree with dep"""
+        dep_instances = self.find_dep_instances(dependency)
+        self._files_with_dep_tree = {"files": []}
+        for path, deps in dep_instances.items():
+            dirparts = path.parent.parts
+            branch = self._files_with_dep_tree
+            for part in dirparts:
+                branch = branch.setdefault(part, {"files": []})
+            branch["files"].append((path, deps))
+
+    def show_files_with_dep_tree(
+        self,
+        dependency: str,
+        showlines: bool = False
+    ) -> None:
+        """Show files with dep as tree"""
+        self._gen_files_with_dep_tree(dependency)
+
+        def showdep(branch: dict, indent=0):
+            path_deps = branch.get("files", [])
+            tree_prefix = self._tree_prefix(indent)
+            maxwidth = (
+                max(len(path.name) for path, _ in path_deps) 
+                if path_deps else 0
+            )
+            for path, deps in path_deps:
+                print(f"{tree_prefix} {path.name}")
+                if showlines:
+                    fpath = str((self._root / path))
+                    line_prefix = self._tree_prefix(indent + 4)
+                    for dep in deps:
+                        line = getline(fpath, dep.lineno).strip("\n")
+                        print(f"{line_prefix} Line {dep.lineno:<5}: {line}")
+                    print(self._vertical_spacer(indent + 4))
+
+            dirs = {k:v for k,v in branch.items() if isinstance(v, dict)}
+            for _dir, val in dirs.items():
+                print(self._vertical_spacer(indent))
+                self._print(f"{tree_prefix} [blue]{_dir}[/blue]/")
+                showdep(val, indent + 4)
+
+        self._print(f"Dependency: [bold cyan]{dependency}[/bold cyan]")
+        showdep(self._files_with_dep_tree)
+
+    def files_with_dep_tree_json(
+        self,
+        fpath: str,
+        dependency: str,
+        showlines: bool = False
+    ) -> None:
+        """Dump files with dep tree to json"""
+        self._gen_files_with_dep_tree(dependency)
+        json_tree = {}
+
+        def copytree(src_branch: dict, dst_branch: dict):
+            path_deps = src_branch.get("files", [])
+            dst_branch["files"] = {} if showlines else []
+            if showlines:
+                for path, deps in path_deps:
+                    dst_branch["files"][path.name] = {}
+                    fpath = str((self._root / path))
+                    for dep in deps:
+                        line = getline(fpath, dep.lineno).strip("\n")
+                        dst_branch["files"][path.name][dep.lineno] = line
+            else:
+                dst_branch["files"] = [path.name for path, _ in path_deps]
+
+            dirs = {k:v for k,v in src_branch.items() if isinstance(v, dict)}
+            for _dir, val in dirs.items():
+                dst_branch[_dir] = {}
+                copytree(val, dst_branch[_dir])
+
+        copytree(self._files_with_dep_tree, json_tree)
+        if fpath:
+            json.dump(json_tree, open(fpath, "w"), indent=4)
+            return
+        return json.dumps(json_tree, ident=4)
+
+    def show_stats(self, topn: int = 5) -> None:
         """Shows dependency stats"""
-        topn = kwargs.get("topn")
-        topn = topn if topn is not None else 5
         print("\nDependency Statistics")
         print("-" * 50, end="\n\n")
         print(f"{'Files Scanned':<25}: {self._stats.files}\n")
@@ -450,7 +640,7 @@ class DepAnalyzer:
             in self._stats.get_top_deps(topn)
         ])
         print(top_deps)
- 
+
 
 if __name__ == "__main__":
     pass

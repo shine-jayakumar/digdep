@@ -1,6 +1,6 @@
 # DigDep
 
-![Version](https://img.shields.io/static/v1?label=version&message=v0.1.0&color=blue)
+![Version](https://img.shields.io/static/v1?label=version&message=v0.1.1&color=blue)
 [![PyPI version](https://img.shields.io/pypi/v/digdep.svg)](https://pypi.org/project/digdep/)
 [![Python versions](https://img.shields.io/pypi/pyversions/digdep.svg)](https://pypi.org/project/digdep/)
 ![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)
